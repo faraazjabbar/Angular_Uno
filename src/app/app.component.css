@@ -1,0 +1,17 @@
+.header {
+  height: 200px;
+  border: 1px solid black;
+}
+.table {
+  height: 250px;
+  border: 1px solid black;
+  margin-top: 10px;
+}
+.deck{
+  height: 200px;
+  border: 1px solid black;
+  margin-top: 10px;
+}
+.half {
+  width: 50%;
+}

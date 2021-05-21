@@ -1,1 +1,24 @@
-{{ UnoDeck | json }}
+Welcome to UNO:
+<div class="header">
+  Direction: {{ direction | json }}<br />
+  Currently Playing Player: {{ currentlyPlayingPlayer?.name }}<br />
+  loggedInUser: {{ loggedInUser?.name }}
+</div>
+<div class="table">Table: Current Card: {{ currentCard | json }}<br /></div>
+<div class="deck">
+  <div class="half" style="float: left">
+    Linga Player Cards(1st):
+    <p *ngFor="let card of currentlyPlayingPlayer.deck">{{ card | json }}</p>
+  </div>
+  <div class="half" style="float: right">
+    Faraaz Player Cards(2nd):
+    <p *ngFor="let card of players[1].deck">{{ card | json }}</p>
+  </div>
+</div>
+<!--
+  1. Distribute 7 cards to player from UnoDeck
+  2. Keep the top card from UnoDeck as currentCard (should not be special card(+2/+4)) and game starts
+  3. Keep track of the current player and direction
+  4. Match the card played by player against the currentCard and proceed the game
+  5. Validate the playing card from the player before placing on the table.
+ -->

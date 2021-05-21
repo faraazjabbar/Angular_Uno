@@ -17,6 +17,7 @@ enum UnoColors {
   BLUE = 'blue',
 }
 export interface Player {
+  id: number;
   name: string;
   deck: UnoCard[];
 }
@@ -49,14 +50,28 @@ export class AppComponent {
     UnoActions.DRAWFOUR,
   ];
   UnoDeck: UnoCard[] = [];
-  Players: Player[] = [
-    { name: 'Linga', deck: [] },
-    { name: 'Faraaz', deck: [] },
+  players: Player[] = [
+    { id: 1, name: 'Linga', deck: [] },
+    { id: 2, name: 'Faraaz', deck: [] },
   ];
+  currentCard: UnoCard;
+  currentlyPlayingPlayer: Player;
+  loggedInUser: Player;
+  direction: number[] = [];
+
   ngOnInit() {
     this.makeUnoDeck();
     this.UnoDeck = this.shuffleDeck(this.UnoDeck);
+    console.log(this.UnoDeck);
+    this.distributeCard(this.UnoDeck, this.players);
+    console.log(this.UnoDeck);
+    console.log(this.players);
+    this.currentCard = this.UnoDeck.pop();
+    this.setPlayingDirection(this.players);
+    this.loggedInUser = this.players[0]; //assume
+    this.currentlyPlayingPlayer = this.players[0]; // assume
   }
+
   makeUnoDeck() {
     this.colors.forEach((color) => {
       this.fourPairs.forEach((num) => {
@@ -91,11 +106,23 @@ export class AppComponent {
       });
     });
   }
-  shuffleDeck(unshuffled: any[]) {
+
+  shuffleDeck(unshuffled: UnoCard[]): UnoCard[] {
     return unshuffled
       .map((a) => ({ sort: Math.random(), value: a }))
       .sort((a, b) => a.sort - b.sort)
       .map((a) => a.value);
   }
-  distributeCard(cardDeck, players) {}
+
+  distributeCard(cardDeck: UnoCard[], players: Player[]) {
+    for (let i = 1; i <= 7; i++) {
+      players.forEach((player) => {
+        player.deck.push(cardDeck.pop());
+      });
+    }
+  }
+
+  setPlayingDirection(players: Player[]): void {
+    this.direction = players.map((player) => player.id);
+  }
 }
