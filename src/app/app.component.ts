@@ -49,27 +49,25 @@ export class AppComponent {
     UnoActions.WILD,
     UnoActions.DRAWFOUR,
   ];
-  UnoDeck: UnoCard[] = [];
+  unoDeck: UnoCard[] = [];
   players: Player[] = [
     { id: 1, name: 'Linga', deck: [] },
     { id: 2, name: 'Faraaz', deck: [] },
   ];
   currentCard: UnoCard;
-  currentlyPlayingPlayer: Player;
+  currentPlayer: Player;
   loggedInUser: Player;
-  direction: number[] = [];
+  direction = true; // true for clockwise, false for anti-clockwise direction
+  tableCards: UnoCard[] = [];
+  showPass = false;
 
   ngOnInit() {
     this.makeUnoDeck();
-    this.UnoDeck = this.shuffleDeck(this.UnoDeck);
-    console.log(this.UnoDeck);
-    this.distributeCard(this.UnoDeck, this.players);
-    console.log(this.UnoDeck);
-    console.log(this.players);
-    this.currentCard = this.UnoDeck.pop();
-    this.setPlayingDirection(this.players);
+    this.unoDeck = this.shuffleDeck(this.unoDeck);
+    this.distributeCard(this.unoDeck, this.players);
+    this.currentCard = this.unoDeck.pop();
     this.loggedInUser = this.players[0]; //assume
-    this.currentlyPlayingPlayer = this.players[0]; // assume
+    this.currentPlayer = this.players[0]; // assume
   }
 
   makeUnoDeck() {
@@ -83,10 +81,10 @@ export class AppComponent {
         if (num === 10) unoCard.action = UnoActions.SKIP;
         if (num === 11) unoCard.action = UnoActions.REVERSE;
         if (num === 12) unoCard.action = UnoActions.DRAWTWO;
-        this.UnoDeck.push(unoCard);
+        this.unoDeck.push(unoCard);
       });
     });
-    this.UnoDeck = this.UnoDeck.concat(this.UnoDeck);
+    this.unoDeck = this.unoDeck.concat(this.unoDeck);
     this.colors.forEach((color) => {
       this.twoPairs.forEach((num) => {
         const unoCard: UnoCard = {
@@ -102,7 +100,7 @@ export class AppComponent {
           unoCard.action = UnoActions.DRAWFOUR;
           unoCard.color = null;
         }
-        this.UnoDeck.push(unoCard);
+        this.unoDeck.push(unoCard);
       });
     });
   }
@@ -122,7 +120,110 @@ export class AppComponent {
     }
   }
 
-  setPlayingDirection(players: Player[]): void {
-    this.direction = players.map((player) => player.id);
+  onPlayingCard(card: UnoCard, cardIndex: number): void {
+    this.showPass = false;
+    /* action:
+        normal -> onCommon + moveToNextPlayer
+        skip -> onCommon + skipNextPlayer
+        reverse -> onCommon + onReverse +  moveToNextPlayer
+        drawTwo -> onCommon + onDrawTwo + skipNextPlayer
+        wild -> onCommon + onWild + moveToNextPlayer
+        drawFour -> onCommon + onDrawFour + onWild + skipNextPlayer
+     */
+    // skipNextPlayer -> 2*moveToNextPlayer
+    // onDrawFour -> 2*onDrawTwo
+    // onDrawTwo -> 2*onDrawOne - showPass condition
+    if (card.action === UnoActions.NORMAL) {
+      this.onCommon(card, cardIndex);
+      this.moveToNextPlayer();
+      return;
+    }
+    if (card.action === UnoActions.SKIP) {
+      this.onCommon(card, cardIndex);
+      if (this.players.length !== 2) {
+        this.moveToNextPlayer();
+        this.moveToNextPlayer();
+      }
+      return;
+    }
+    if (card.action === UnoActions.REVERSE) {
+      this.onCommon(card, cardIndex);
+      if (this.players.length !== 2) {
+        this.onReverse();
+        this.moveToNextPlayer();
+      }
+      return;
+    }
+    if (card.action === UnoActions.DRAWTWO) {
+      this.onCommon(card, cardIndex);
+      // Solution 1: moveToNextPlayer + add 2 cards + moveToNextPlayer (current implementation)
+      // Solution 2: add 2 cards to next player + skipNextPlayer
+      this.moveToNextPlayer();
+      this.onDrawOne();
+      this.onDrawOne();
+      this.moveToNextPlayer();
+      return;
+    }
+    if (card.action === UnoActions.WILD) {
+      this.onCommon(card, cardIndex);
+      this.onWild();
+      this.moveToNextPlayer();
+      return;
+    }
+    if (card.action === UnoActions.DRAWFOUR) {
+      this.onCommon(card, cardIndex);
+      // Solution 1: moveToNextPlayer + add 4 cards(2 drawTwo) + moveToNextPlayer (current implementation)
+      // Solution 2: add 4 cards to next player + skipNextPlayer
+      this.moveToNextPlayer();
+      this.onDrawOne();
+      this.onDrawOne();
+      this.onDrawOne();
+      this.onDrawOne();
+      this.onWild();
+      this.moveToNextPlayer();
+    }
+  }
+
+  onCommon(card: UnoCard, cardIndex: number) {
+    // Common Gameplay:
+    // Remove played 'card' from the 'currentPlayer's deck'
+    this.currentPlayer.deck.splice(cardIndex, 1);
+    // Add the 'currentCard' to 'tableCards' (indicating below the current card)
+    this.tableCards.unshift(this.currentCard);
+    // Change the 'currentCard' to the 'card' played
+    this.currentCard = card;
+  }
+
+  moveToNextPlayer() {
+    this.showPass = false;
+    const currentPlayerIndex = this.players.findIndex(
+      (player) => player.id === this.currentPlayer.id
+    );
+    // Change the current player based on direction
+    if (this.direction) {
+      // clockwise
+      this.currentPlayer =
+        this.players[(currentPlayerIndex + 1) % this.players.length];
+    } else {
+      // anti-clockwise
+      this.currentPlayer = currentPlayerIndex
+        ? this.players[currentPlayerIndex - 1]
+        : this.players[this.players.length - 1];
+    }
+  }
+
+  onReverse() {
+    // Change direction
+    this.direction = !this.direction;
+  }
+
+  onWild() {
+    // Ask color, set current color
+  }
+
+  onDrawOne(showPass = false) {
+    // Add one card from 'unoDeck' to 'currentPlayer's deck'
+    this.currentPlayer.deck.push(this.unoDeck.pop());
+    this.showPass = showPass;
   }
 }
