@@ -1,5 +1,5 @@
-import { UnoCard } from './../app.component';
 import { Component, Input, OnInit } from '@angular/core';
+import { UnoCard } from '../Constants/constants';
 
 @Component({
   selector: 'app-uno-card',

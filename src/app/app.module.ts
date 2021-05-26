@@ -9,9 +9,10 @@ import { AngularFireModule } from '@angular/fire';
 import { AngularFireDatabaseModule } from '@angular/fire/database';
 
 import { environment } from 'src/environments/environment';
+import { GameRoomComponent } from './game-room/game-room.component';
 
 @NgModule({
-  declarations: [AppComponent, UnoCardComponent],
+  declarations: [AppComponent, UnoCardComponent, GameRoomComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,
