@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import { AngularFireDatabase } from '@angular/fire/database';
+import { NgbModal, NgbModalConfig } from '@ng-bootstrap/ng-bootstrap';
 
 type Value = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
 
@@ -10,11 +12,12 @@ enum UnoActions {
   WILD = 'wild',
   DRAWFOUR = 'drawfour',
 }
-enum UnoColors {
+export enum UnoColors {
   RED = 'red',
   YELLOW = 'yellow',
   GREEN = 'green',
   BLUE = 'blue',
+  BLACK = 'black',
 }
 export interface Player {
   id: number;
@@ -25,6 +28,7 @@ export interface UnoCard {
   value: Value;
   color: UnoColors;
   action: UnoActions;
+  stackRotation?: number;
 }
 @Component({
   selector: 'app-root',
@@ -32,6 +36,7 @@ export interface UnoCard {
   styleUrls: ['./app.component.css'],
 })
 export class AppComponent {
+  unoColors = UnoColors;
   title = 'Angular-uno';
   card: UnoCard;
   fourPairs: Value[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -56,20 +61,45 @@ export class AppComponent {
   ];
   currentCard: UnoCard;
   currentPlayer: Player;
+  currentColor: UnoColors;
   loggedInUser: Player;
   direction = true; // true for clockwise, false for anti-clockwise direction
   tableCards: UnoCard[] = [];
   showPass = false;
-
+  constructor(
+    config: NgbModalConfig,
+    private modalService: NgbModal,
+    private db: AngularFireDatabase
+  ) {
+    config.backdrop = 'static';
+    config.keyboard = false;
+  }
   ngOnInit() {
     this.makeUnoDeck();
     this.unoDeck = this.shuffleDeck(this.unoDeck);
     this.distributeCard(this.unoDeck, this.players);
-    this.currentCard = this.unoDeck.pop();
+    let firstCard: UnoCard = this.unoDeck.pop();
+    while (firstCard.action !== UnoActions.NORMAL) {
+      this.unoDeck.unshift(firstCard);
+      firstCard = this.unoDeck.pop();
+    }
+    this.currentCard = firstCard;
+    this.currentColor = this.currentCard.color;
+    this.tableCards.push({
+      ...this.currentCard,
+      stackRotation: Math.floor(Math.random() * (40 - -40 + 1) + -40),
+    });
     this.loggedInUser = this.players[0]; //assume
     this.currentPlayer = this.players[0]; // assume
   }
-
+  openColorPicker(content) {
+    this.modalService
+      .open(content, { animation: true, centered: true })
+      .result.then((color) => {
+        this.currentColor = color;
+        this.tableCards[this.tableCards.length - 1].color = this.currentColor;
+      });
+  }
   makeUnoDeck() {
     this.colors.forEach((color) => {
       this.fourPairs.forEach((num) => {
@@ -94,15 +124,18 @@ export class AppComponent {
         };
         if (num === 13) {
           unoCard.action = UnoActions.WILD;
-          unoCard.color = null;
+          unoCard.color = UnoColors.BLACK;
         }
         if (num === 14) {
           unoCard.action = UnoActions.DRAWFOUR;
-          unoCard.color = null;
+          unoCard.color = UnoColors.BLACK;
         }
         this.unoDeck.push(unoCard);
       });
     });
+  }
+  alert(msg) {
+    alert(msg);
   }
 
   shuffleDeck(unshuffled: UnoCard[]): UnoCard[] {
@@ -118,10 +151,22 @@ export class AppComponent {
         player.deck.push(cardDeck.pop());
       });
     }
+    // players.forEach((player) =>
+    //   player.deck.sort((a, b) => (a.color - b.value ? 1 : -1))
+    // );
   }
 
-  onPlayingCard(card: UnoCard, cardIndex: number): void {
-    this.showPass = false;
+  onPlayingCard(card: UnoCard, cardIndex: number, id: number, content): void {
+    if (id !== this.currentPlayer?.id) return;
+    if (
+      card.color !== UnoColors.BLACK &&
+      this.currentColor !== card?.color &&
+      this.currentCard?.value !== card?.value
+    ) {
+      alert('The card is not valid');
+      return;
+    }
+
     /* action:
         normal -> onCommon + moveToNextPlayer
         skip -> onCommon + skipNextPlayer
@@ -133,13 +178,13 @@ export class AppComponent {
     // skipNextPlayer -> 2*moveToNextPlayer
     // onDrawFour -> 2*onDrawTwo
     // onDrawTwo -> 2*onDrawOne - showPass condition
+    this.onCommon(card, cardIndex);
+
     if (card.action === UnoActions.NORMAL) {
-      this.onCommon(card, cardIndex);
       this.moveToNextPlayer();
       return;
     }
     if (card.action === UnoActions.SKIP) {
-      this.onCommon(card, cardIndex);
       if (this.players.length !== 2) {
         this.moveToNextPlayer();
         this.moveToNextPlayer();
@@ -147,7 +192,6 @@ export class AppComponent {
       return;
     }
     if (card.action === UnoActions.REVERSE) {
-      this.onCommon(card, cardIndex);
       if (this.players.length !== 2) {
         this.onReverse();
         this.moveToNextPlayer();
@@ -155,7 +199,6 @@ export class AppComponent {
       return;
     }
     if (card.action === UnoActions.DRAWTWO) {
-      this.onCommon(card, cardIndex);
       // Solution 1: moveToNextPlayer + add 2 cards + moveToNextPlayer (current implementation)
       // Solution 2: add 2 cards to next player + skipNextPlayer
       this.moveToNextPlayer();
@@ -165,33 +208,37 @@ export class AppComponent {
       return;
     }
     if (card.action === UnoActions.WILD) {
-      this.onCommon(card, cardIndex);
-      this.onWild();
+      this.onWild(content);
       this.moveToNextPlayer();
       return;
     }
     if (card.action === UnoActions.DRAWFOUR) {
-      this.onCommon(card, cardIndex);
       // Solution 1: moveToNextPlayer + add 4 cards(2 drawTwo) + moveToNextPlayer (current implementation)
       // Solution 2: add 4 cards to next player + skipNextPlayer
+      this.onWild(content);
       this.moveToNextPlayer();
       this.onDrawOne();
       this.onDrawOne();
       this.onDrawOne();
       this.onDrawOne();
-      this.onWild();
       this.moveToNextPlayer();
     }
   }
 
   onCommon(card: UnoCard, cardIndex: number) {
+    this.showPass = false;
     // Common Gameplay:
     // Remove played 'card' from the 'currentPlayer's deck'
     this.currentPlayer.deck.splice(cardIndex, 1);
     // Add the 'currentCard' to 'tableCards' (indicating below the current card)
-    this.tableCards.unshift(this.currentCard);
+    this.tableCards.push({
+      ...card,
+      stackRotation: Math.floor(Math.random() * (20 - -40 + 1) + -40),
+    });
     // Change the 'currentCard' to the 'card' played
     this.currentCard = card;
+    this.currentColor = this.currentCard.color;
+    if (!this.currentPlayer.deck.length) alert('Player Won');
   }
 
   moveToNextPlayer() {
@@ -217,12 +264,14 @@ export class AppComponent {
     this.direction = !this.direction;
   }
 
-  onWild() {
+  onWild(content) {
     // Ask color, set current color
+    this.openColorPicker(content);
   }
 
   onDrawOne(showPass = false) {
     // Add one card from 'unoDeck' to 'currentPlayer's deck'
+    if (this.showPass) return;
     this.currentPlayer.deck.push(this.unoDeck.pop());
     this.showPass = showPass;
   }
