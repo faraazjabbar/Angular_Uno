@@ -36,8 +36,20 @@ Welcome to UNO:
   Currently Player: {{ currentPlayer?.name }}<br />
   loggedInUser: {{ loggedInUser?.name }}
 </div> -->
+<h2>Joined Players</h2>
+<div *ngIf="gameRoom?.players && gameRoom.players.length > 1">
+  <span *ngFor="let player of gameRoom?.players"
+    >{{ player.name }} {{ player.deck && player.deck.length }} |
+  </span>
+  <button
+    *ngIf="!gameRoom.gameStarted && gameRoom.creator.id === loggedInUser.id"
+    (click)="initiateGame()"
+  >
+    Start
+  </button>
+</div>
 <hr />
-<div class="table">
+<div class="table" *ngIf="gameRoom?.gameStarted">
   <svg
     width="179"
     height="217"
@@ -85,7 +97,7 @@ Welcome to UNO:
   </svg>
   <div class="table-stack">
     <app-uno-card
-      *ngFor="let card of tableCards; let i = index"
+      *ngFor="let card of gameRoom.tableCards; let i = index"
       [card]="card"
       [ngStyle]="{
         transform: 'rotate(' + card.stackRotation + 'deg)'
@@ -95,10 +107,10 @@ Welcome to UNO:
 </div>
 <hr />
 
-<div class="deck">
+<div class="deck" *ngIf="gameRoom?.gameStarted">
   <div class="half">
-    Player Cards(1st):
-    <span *ngIf="loggedInUser.id === currentPlayer.id">Current Player</span>
+    {{ loggedInUser.name }}'s Cards(1st):
+    <span *ngIf="loggedInUser.id === gameRoom.currentPlayer.id">Your Turn</span>
     <div class="cards">
       <app-uno-card
         *ngFor="let card of loggedInUser.deck; let i = index"
@@ -108,29 +120,36 @@ Welcome to UNO:
     </div>
     <div>
       <button
-      class="btn btn-dark"
-        (click)="moveToNextPlayer()"
-        *ngIf="showPass && loggedInUser.id === currentPlayer.id"
+        class="btn btn-dark"
+        (click)="moveToNextPlayer(true)"
+        *ngIf="showPass && loggedInUser.id === gameRoom.currentPlayer.id"
       >
-        PASS
+        Pass
       </button>
     </div>
   </div>
-  <div class="half" >
-    Faraaz Player Cards(2nd):
-    <span *ngIf="players[1].id === currentPlayer.id">Current Player</span>
+  <!-- <div *ngFor="let player of players" class="half">
+    {{ player.name }} Player Cards(2nd):
+    <span *ngIf="player.id === currentPlayer.id">Current Player</span>
     <div class="cards">
       <app-uno-card
-        *ngFor="let card of players[1].deck; let i = index"
+        *ngFor="let card of player.deck; let i = index"
         [card]="card"
-        (click)="onPlayingCard(card, i, players[1].id, content)"
+        (click)="onPlayingCard(card, i, player.id, content)"
       ></app-uno-card>
     </div>
     <div>
-
-    <button type="button" class="btn btn-dark" (click)="moveToNextPlayer()" *ngIf="showPass && players[1].id === currentPlayer.id">Pass</button>
-  </div>
+      <button
+        type="button"
+        class="btn btn-dark"
+        (click)="moveToNextPlayer()"
+        *ngIf="showPass && player.id === currentPlayer.id"
+      >
+        Pass
+      </button>
+    </div>
+  </div> -->
+  <!-- 1. First card should not be (special card) -->
+  <!-- 2. Disable other player's card and show notification on playing non matching card -->
+  <!-- 3. Move enum/interfaces to shared folder -->
 </div>
-<!-- 1. First card should not be (special card) -->
-<!-- 2. Disable other player's card and show notification on playing non matching card -->
-<!-- 3. Move enum/interfaces to shared folder -->

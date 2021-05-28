@@ -5,6 +5,7 @@
 .cards {
   display: flex;
   transform: scale(0.9);
+  flex-shrink: 1;
 }
 .cards app-uno-card {
   transition: 0.2s;

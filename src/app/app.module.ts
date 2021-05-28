@@ -10,15 +10,25 @@ import { AngularFireDatabaseModule } from '@angular/fire/database';
 
 import { environment } from 'src/environments/environment';
 import { GameRoomComponent } from './game-room/game-room.component';
+import { CreateJoinRoomComponent } from './create-join-room/create-join-room.component';
+import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
-  declarations: [AppComponent, UnoCardComponent, GameRoomComponent],
+  declarations: [
+    AppComponent,
+    UnoCardComponent,
+    GameRoomComponent,
+    CreateJoinRoomComponent,
+  ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     NgbModalModule,
     AngularFireModule.initializeApp(environment.firebaseConfig),
     AngularFireDatabaseModule,
+    FormsModule,
+    HttpClientModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

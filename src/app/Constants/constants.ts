@@ -55,3 +55,17 @@ export const SpecialActions: UnoActions[] = [
   UnoActions.WILD,
   UnoActions.DRAWFOUR,
 ];
+export interface GameRoom {
+  roomId: number;
+  createdAt: string;
+  shuffledDeck: UnoCard[];
+  players: Player[];
+  currentCard: UnoCard;
+  currentColor: UnoColors;
+  direction: boolean;
+  tableCards: UnoCard[];
+  currentPlayer: Player;
+  gameStarted: boolean;
+  creator: Player;
+  key?: string;
+}

@@ -1,8 +1,16 @@
+import { FirebaseService } from './../services/firebase.service';
+import { GameService } from './../services/game.service';
 import { Component, OnInit } from '@angular/core';
 import { AngularFireDatabase } from '@angular/fire/database';
 import { ActivatedRoute } from '@angular/router';
 import { NgbModal, NgbModalConfig } from '@ng-bootstrap/ng-bootstrap';
-import { Colors, FourPairs, Player, TwoPairs, UnoActions, UnoCard, UnoColors } from '../Constants/constants';
+import {
+  Player,
+  UnoActions,
+  GameRoom,
+  UnoCard,
+  UnoColors,
+} from '../Constants/constants';
 
 @Component({
   selector: 'app-game-room',
@@ -18,6 +26,7 @@ export class GameRoomComponent implements OnInit {
   players: Player[] = [
     { id: 1, name: 'Linga', deck: [] },
     { id: 2, name: 'Faraaz', deck: [] },
+    { id: 3, name: 'Sunil', deck: [] },
   ];
   currentCard: UnoCard;
   currentPlayer: Player;
@@ -26,10 +35,15 @@ export class GameRoomComponent implements OnInit {
   direction = true; // true for clockwise, false for anti-clockwise direction
   tableCards: UnoCard[] = [];
   showPass = false;
+  gameRoom: GameRoom;
+  // loggedInDeck: UnoCard[];
   constructor(
     config: NgbModalConfig,
     private modalService: NgbModal,
-    private db: AngularFireDatabase,private readonly activatedRoute: ActivatedRoute
+    private db: AngularFireDatabase,
+    private readonly activatedRoute: ActivatedRoute,
+    private gameService: GameService,
+    private fb: FirebaseService
   ) {
     config.backdrop = 'static';
     config.keyboard = false;
@@ -38,10 +52,18 @@ export class GameRoomComponent implements OnInit {
     this.activatedRoute.params.subscribe((params) => {
       this.roomId = params?.roomId;
     });
-    const rand = Math.floor(Math.random() * (9999 - 1000) + 1000);
-    console.log(rand);
-    this.makeUnoDeck();
-    this.unoDeck = this.shuffleDeck(this.unoDeck);
+    this.db
+      .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+      .snapshotChanges()
+      .subscribe((gameRooms) => {
+        this.gameRoom = { ...gameRooms.payload.val() };
+        this.loggedInUser = this.gameRoom.players.find(
+          (player) => player.id === this.loggedInUser.id
+        );
+      });
+
+    // .subscribe((data) => console.log(data));
+    this.unoDeck = this.gameService.shuffleDeck(this.gameService.makeUnoDeck());
     this.distributeCard(this.unoDeck, this.players);
     let firstCard: UnoCard = this.unoDeck.pop();
     while (firstCard.action !== UnoActions.NORMAL) {
@@ -54,60 +76,46 @@ export class GameRoomComponent implements OnInit {
       ...this.currentCard,
       stackRotation: Math.floor(Math.random() * (40 - -40 + 1) + -40),
     });
-    this.loggedInUser = this.players[0]; //assume
+    this.loggedInUser = this.gameService.getLoggedInUser(); //assume
     this.currentPlayer = this.players[0]; // assume
   }
   openColorPicker(content) {
-    this.modalService
-      .open(content, { animation: true, centered: true })
-      .result.then((color) => {
-        this.currentColor = color;
-        this.tableCards[this.tableCards.length - 1].color = this.currentColor;
-      });
+    return this.modalService.open(content, { animation: true, centered: true })
+      .result;
   }
-  makeUnoDeck() {
-    Colors.forEach((color) => {
-      FourPairs.forEach((num) => {
-        const unoCard: UnoCard = {
-          value: num,
-          color: color,
-          action: UnoActions.NORMAL,
-        };
-        if (num === 10) unoCard.action = UnoActions.SKIP;
-        if (num === 11) unoCard.action = UnoActions.REVERSE;
-        if (num === 12) unoCard.action = UnoActions.DRAWTWO;
-        this.unoDeck.push(unoCard);
+  initiateGame() {
+    const cardPlayers = this.gameService.distributeCards(
+      this.gameRoom.shuffledDeck,
+      this.gameRoom.players
+    );
+    let firstCard: UnoCard = cardPlayers.cardDeck.pop();
+    while (firstCard.action !== UnoActions.NORMAL) {
+      cardPlayers.cardDeck.unshift(firstCard);
+      firstCard = cardPlayers.cardDeck.pop();
+    }
+    const currentCard = firstCard;
+    const currentColor = currentCard.color;
+    const tableCards = [
+      {
+        ...currentCard,
+        stackRotation: Math.floor(Math.random() * (40 - -40 + 1) + -40),
+      },
+    ];
+    const currentPlayer = cardPlayers.players[0];
+    this.db
+      .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+      .update({
+        players: cardPlayers.players,
+        shuffledDeck: cardPlayers.cardDeck,
+        gameStarted: true,
+        tableCards,
+        currentCard,
+        currentColor,
+        currentPlayer,
       });
-    });
-    this.unoDeck = this.unoDeck.concat(this.unoDeck);
-    Colors.forEach((color) => {
-      TwoPairs.forEach((num) => {
-        const unoCard: UnoCard = {
-          value: num,
-          color: color,
-          action: UnoActions.NORMAL,
-        };
-        if (num === 13) {
-          unoCard.action = UnoActions.WILD;
-          unoCard.color = UnoColors.BLACK;
-        }
-        if (num === 14) {
-          unoCard.action = UnoActions.DRAWFOUR;
-          unoCard.color = UnoColors.BLACK;
-        }
-        this.unoDeck.push(unoCard);
-      });
-    });
   }
   alert(msg) {
     alert(msg);
-  }
-
-  shuffleDeck(unshuffled: UnoCard[]): UnoCard[] {
-    return unshuffled
-      .map((a) => ({ sort: Math.random(), value: a }))
-      .sort((a, b) => a.sort - b.sort)
-      .map((a) => a.value);
   }
 
   distributeCard(cardDeck: UnoCard[], players: Player[]) {
@@ -122,11 +130,12 @@ export class GameRoomComponent implements OnInit {
   }
 
   onPlayingCard(card: UnoCard, cardIndex: number, id: number, content): void {
-    if (id !== this.currentPlayer?.id) return;
+    const gameRoom = { ...this.gameRoom };
+    if (id !== gameRoom.currentPlayer?.id) return;
     if (
       card.color !== UnoColors.BLACK &&
-      this.currentColor !== card?.color &&
-      this.currentCard?.value !== card?.value
+      gameRoom.currentColor !== card?.color &&
+      gameRoom.currentCard?.value !== card?.value
     ) {
       alert('The card is not valid');
       return;
@@ -147,19 +156,28 @@ export class GameRoomComponent implements OnInit {
 
     if (card.action === UnoActions.NORMAL) {
       this.moveToNextPlayer();
+      this.db
+        .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+        .set(this.gameRoom);
       return;
     }
     if (card.action === UnoActions.SKIP) {
       if (this.players.length !== 2) {
         this.moveToNextPlayer();
         this.moveToNextPlayer();
+        this.db
+          .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+          .set(this.gameRoom);
+        return;
       }
-      return;
     }
     if (card.action === UnoActions.REVERSE) {
       if (this.players.length !== 2) {
         this.onReverse();
         this.moveToNextPlayer();
+        this.db
+          .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+          .set(this.gameRoom);
       }
       return;
     }
@@ -170,63 +188,91 @@ export class GameRoomComponent implements OnInit {
       this.onDrawOne();
       this.onDrawOne();
       this.moveToNextPlayer();
+      this.db
+        .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+        .set(this.gameRoom);
       return;
     }
     if (card.action === UnoActions.WILD) {
-      this.onWild(content);
-      this.moveToNextPlayer();
-      return;
+      this.openColorPicker(content).then((color) => {
+        this.gameRoom.currentColor = color;
+        this.gameRoom.tableCards[this.gameRoom.tableCards.length - 1].color =
+          this.gameRoom.currentColor;
+        this.moveToNextPlayer();
+        this.db
+          .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+          .set(this.gameRoom);
+      });
     }
     if (card.action === UnoActions.DRAWFOUR) {
       // Solution 1: moveToNextPlayer + add 4 cards(2 drawTwo) + moveToNextPlayer (current implementation)
       // Solution 2: add 4 cards to next player + skipNextPlayer
-      this.onWild(content);
-      this.moveToNextPlayer();
-      this.onDrawOne();
-      this.onDrawOne();
-      this.onDrawOne();
-      this.onDrawOne();
-      this.moveToNextPlayer();
+      this.openColorPicker(content).then((color) => {
+        this.gameRoom.currentColor = color;
+        this.gameRoom.tableCards[this.gameRoom.tableCards.length - 1].color =
+          this.gameRoom.currentColor;
+        this.moveToNextPlayer();
+        this.onDrawOne();
+        this.onDrawOne();
+        this.onDrawOne();
+        this.onDrawOne();
+        this.moveToNextPlayer();
+        this.db
+          .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+          .set(this.gameRoom);
+      });
     }
   }
 
   onCommon(card: UnoCard, cardIndex: number) {
+    const currentPlayerIndex = this.gameRoom.players.findIndex(
+      (player) => player.id === this.gameRoom.currentPlayer.id
+    );
     this.showPass = false;
     // Common Gameplay:
     // Remove played 'card' from the 'currentPlayer's deck'
-    this.currentPlayer.deck.splice(cardIndex, 1);
+    this.gameRoom.players[currentPlayerIndex].deck.splice(cardIndex, 1);
     // Add the 'currentCard' to 'tableCards' (indicating below the current card)
-    this.tableCards.push({
+    this.gameRoom.tableCards.push({
       ...card,
       stackRotation: Math.floor(Math.random() * (20 - -40 + 1) + -40),
     });
     // Change the 'currentCard' to the 'card' played
-    this.currentCard = card;
-    this.currentColor = this.currentCard.color;
-    if (!this.currentPlayer.deck.length) alert('Player Won');
+    this.gameRoom.currentCard = card;
+    this.gameRoom.currentColor = this.gameRoom.currentCard.color;
+    if (!this.gameRoom.players[currentPlayerIndex].deck.length)
+      alert('Player Won');
   }
 
-  moveToNextPlayer() {
+  moveToNextPlayer(pass: boolean = false) {
     this.showPass = false;
-    const currentPlayerIndex = this.players.findIndex(
-      (player) => player.id === this.currentPlayer.id
+    const currentPlayerIndex = this.gameRoom.players.findIndex(
+      (player) => player.id === this.gameRoom.currentPlayer.id
     );
     // Change the current player based on direction
-    if (this.direction) {
+    if (this.gameRoom.direction) {
       // clockwise
-      this.currentPlayer =
-        this.players[(currentPlayerIndex + 1) % this.players.length];
+      this.gameRoom.currentPlayer =
+        this.gameRoom.players[
+          (currentPlayerIndex + 1) % this.gameRoom.players.length
+        ];
     } else {
       // anti-clockwise
-      this.currentPlayer = currentPlayerIndex
-        ? this.players[currentPlayerIndex - 1]
-        : this.players[this.players.length - 1];
+      this.gameRoom.currentPlayer = currentPlayerIndex
+        ? this.gameRoom.players[currentPlayerIndex - 1]
+        : this.gameRoom.players[this.gameRoom.players.length - 1];
     }
+    if (pass)
+      this.db
+        .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+        .set({
+          ...this.gameRoom,
+        });
   }
 
   onReverse() {
     // Change direction
-    this.direction = !this.direction;
+    this.gameRoom.direction = !this.gameRoom.direction;
   }
 
   onWild(content) {
@@ -237,7 +283,18 @@ export class GameRoomComponent implements OnInit {
   onDrawOne(showPass = false) {
     // Add one card from 'unoDeck' to 'currentPlayer's deck'
     if (this.showPass) return;
-    this.currentPlayer.deck.push(this.unoDeck.pop());
+    const currentPlayerIndex = this.gameRoom.players.findIndex(
+      (player) => player.id === this.gameRoom.currentPlayer.id
+    );
+    this.gameRoom.players[currentPlayerIndex].deck.push(
+      this.gameRoom.shuffledDeck.pop()
+    );
     this.showPass = showPass;
+    if (showPass)
+      this.db
+        .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
+        .set({
+          ...this.gameRoom,
+        });
   }
 }
