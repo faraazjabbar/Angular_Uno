@@ -1,5 +1,55 @@
-<span>Username</span> <input type="text" [(ngModel)]="userName" />
-<span>Room ID</span>
-<input type="text" [(ngModel)]="roomId" />
-<button (click)="createRoom()">Create Room</button>
-<button (click)="joinRoom()">Join Room</button>
+<!-- Reference: https://codepen.io/ehermanson/pen/KwKWEv -->
+<div class="form">
+  <ul class="tab-group">
+    <li class="tab" [ngClass]="{ active: createMode }" (click)="toggleMode()">
+      <a>Create Room</a>
+    </li>
+    <li class="tab" [ngClass]="{ active: !createMode }" (click)="toggleMode()">
+      <a>Join Room</a>
+    </li>
+  </ul>
+  <div class="tab-content">
+    <div id="create">
+      <h1 *ngIf="createMode">Create Room here!!</h1>
+      <h1 *ngIf="!createMode">Join Room here!!</h1>
+      <form>
+        <div class="field-wrap">
+          <input
+            type="text"
+            required
+            autocomplete="off"
+            name="username"
+            [(ngModel)]="userName"
+            placeholder="Username*"
+          />
+          <span *ngIf="showError" class="danger">Enter Username</span>
+        </div>
+        <div class="field-wrap" *ngIf="!createMode">
+          <input
+            type="text"
+            required
+            autocomplete="off"
+            name="roomId"
+            [(ngModel)]="roomId"
+            placeholder="Room Id*"
+          />
+          <span *ngIf="showError" class="danger">Enter roomId</span>
+        </div>
+        <button
+          class="button button-block"
+          *ngIf="createMode"
+          (click)="createRoom()"
+        >
+          Create Room
+        </button>
+        <button
+          class="button button-block"
+          *ngIf="!createMode"
+          (click)="joinRoom()"
+        >
+          Join Room
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

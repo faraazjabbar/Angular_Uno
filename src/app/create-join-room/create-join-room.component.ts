@@ -17,8 +17,11 @@ import { take } from 'rxjs/operators';
   styleUrls: ['./create-join-room.component.css'],
 })
 export class CreateJoinRoomComponent implements OnInit {
-  userName: string;
-  roomId: number;
+  userName = '';
+  roomId = '';
+  createMode = true; // assume create mode default
+  showError = false;
+
   constructor(
     private gameService: GameService,
     private fb: FirebaseService,
@@ -27,7 +30,13 @@ export class CreateJoinRoomComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {}
+
   createRoom() {
+    if (!this.userName) {
+      this.showError = true;
+      return;
+    }
+    this.showError = false;
     const player: Player = {
       id: Math.floor(Math.random() * (99999999 - 1000) + 1000),
       name: this.userName,
@@ -62,7 +71,13 @@ export class CreateJoinRoomComponent implements OnInit {
       });
     });
   }
+
   joinRoom() {
+    if (!this.userName || !this.roomId) {
+      this.showError = true;
+      return;
+    }
+    this.showError = false;
     //To do
     //check whether room exists or not
     this.fb
@@ -86,12 +101,16 @@ export class CreateJoinRoomComponent implements OnInit {
         const players = [...gameObject.players];
         players.push(player);
         console.log(players);
-
         this.db
           .object('/gameRooms/' + this.gameService.getRoom().roomKey)
           .update({ players: players });
         this.gameService.loggedInUser = player;
         this.router.navigate(['room', gameObject?.roomId]);
       });
+  }
+
+  toggleMode(): void {
+    this.createMode = !this.createMode;
+    this.showError = false;
   }
 }
