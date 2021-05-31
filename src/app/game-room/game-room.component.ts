@@ -37,6 +37,7 @@ export class GameRoomComponent implements OnInit {
   showPass = false;
   gameRoom: GameRoom;
   // loggedInDeck: UnoCard[];
+  unoClicked = false;
   constructor(
     config: NgbModalConfig,
     private modalService: NgbModal,
@@ -140,7 +141,15 @@ export class GameRoomComponent implements OnInit {
       alert('The card is not valid');
       return;
     }
-
+    if (
+      this.loggedInUser?.deck?.length === 2 &&
+      this.loggedInUser?.id === gameRoom?.currentPlayer?.id &&
+      !this.unoClicked
+    ) {
+      this.onDrawOne();
+      this.onDrawOne();
+      this.unoClicked = false;
+    }
     /* action:
         normal -> onCommon + moveToNextPlayer
         skip -> onCommon + skipNextPlayer
@@ -296,5 +305,9 @@ export class GameRoomComponent implements OnInit {
         .set({
           ...this.gameRoom,
         });
+  }
+
+  onUnoClicked(): void {
+    this.unoClicked = true;
   }
 }

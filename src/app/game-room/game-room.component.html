@@ -153,3 +153,11 @@ Welcome to UNO:
   <!-- 2. Disable other player's card and show notification on playing non matching card -->
   <!-- 3. Move enum/interfaces to shared folder -->
 </div>
+<div
+  *ngIf="
+    loggedInUser?.deck?.length === 2 &&
+    loggedInUser?.id === gameRoom?.currentPlayer?.id
+  "
+>
+  <button (click)="onUnoClicked()">UNO</button>
+</div>
