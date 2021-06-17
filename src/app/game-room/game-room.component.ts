@@ -11,6 +11,7 @@ import {
   UnoCard,
   UnoColors,
 } from '../Constants/constants';
+import { Clipboard } from '@angular/cdk/clipboard';
 
 @Component({
   selector: 'app-game-room',
@@ -27,24 +28,29 @@ export class GameRoomComponent implements OnInit {
     { id: 1, name: 'Linga', deck: [] },
     { id: 2, name: 'Faraaz', deck: [] },
     { id: 3, name: 'Sunil', deck: [] },
+    { id: 3, name: 'pppp', deck: [] },
   ];
   currentCard: UnoCard;
   currentPlayer: Player;
   currentColor: UnoColors;
   loggedInUser: Player;
+  loggedUserId: number;
   direction = true; // true for clockwise, false for anti-clockwise direction
   tableCards: UnoCard[] = [];
   showPass = false;
   gameRoom: GameRoom;
   // loggedInDeck: UnoCard[];
   unoClicked = false;
+  playersDisplay: Player[];
+  positions: string[];
   constructor(
     config: NgbModalConfig,
     private modalService: NgbModal,
     private db: AngularFireDatabase,
     private readonly activatedRoute: ActivatedRoute,
     private gameService: GameService,
-    private fb: FirebaseService
+    private fb: FirebaseService,
+    private clipboard: Clipboard
   ) {
     config.backdrop = 'static';
     config.keyboard = false;
@@ -53,13 +59,39 @@ export class GameRoomComponent implements OnInit {
     this.activatedRoute.params.subscribe((params) => {
       this.roomId = params?.roomId;
     });
+    if (localStorage.getItem('roomKey')) {
+      this.gameService.roomId = +localStorage.getItem('roomId');
+      this.gameService.roomKey = localStorage.getItem('roomKey');
+      this.loggedUserId = +localStorage.getItem('loggedInUserId');
+    }
     this.db
       .object<GameRoom>('/gameRooms/' + this.gameService.getRoom().roomKey)
       .snapshotChanges()
       .subscribe((gameRooms) => {
         this.gameRoom = { ...gameRooms.payload.val() };
+        this.playersDisplay = [...this.gameRoom.players];
+        if (this.playersDisplay.length) {
+          if (this.playersDisplay.length === 2) {
+            this.positions = ['p0', 'p2'];
+          }
+          if (this.playersDisplay.length === 3) {
+            this.positions = ['p0', 'p1', 'p3'];
+          }
+          if (this.playersDisplay.length === 4) {
+            this.positions = ['p0', 'p1', 'p2', 'p3'];
+          }
+        }
+        let loggedUser = this.playersDisplay.find(
+          (player) => player.id === this.loggedUserId
+        );
+        let currentPos = 0;
+        while (this.playersDisplay[currentPos].id !== loggedUser.id) {
+          let element = this.playersDisplay[currentPos];
+          this.playersDisplay.splice(currentPos, 1);
+          this.playersDisplay.splice(this.playersDisplay.length, 0, element);
+        }
         this.loggedInUser = this.gameRoom.players.find(
-          (player) => player.id === this.loggedInUser.id
+          (player) => player.id === this.loggedUserId
         );
       });
 
@@ -75,7 +107,8 @@ export class GameRoomComponent implements OnInit {
     this.currentColor = this.currentCard.color;
     this.tableCards.push({
       ...this.currentCard,
-      stackRotation: Math.floor(Math.random() * (40 - -40 + 1) + -40),
+      stackRotation: Math.floor(Math.random() * (-110 - -60 + 1) + -60),
+      translateY: Math.floor(Math.random() * (20 - -20 + 1) + -20),
     });
     this.loggedInUser = this.gameService.getLoggedInUser(); //assume
     this.currentPlayer = this.players[0]; // assume
@@ -99,7 +132,8 @@ export class GameRoomComponent implements OnInit {
     const tableCards = [
       {
         ...currentCard,
-        stackRotation: Math.floor(Math.random() * (40 - -40 + 1) + -40),
+        stackRotation: Math.floor(Math.random() * (-110 - -60 + 1) + -60),
+        translateY: Math.floor(Math.random() * (20 - -20 + 1) + -20),
       },
     ];
     const currentPlayer = cardPlayers.players[0];
@@ -244,7 +278,8 @@ export class GameRoomComponent implements OnInit {
     // Add the 'currentCard' to 'tableCards' (indicating below the current card)
     this.gameRoom.tableCards.push({
       ...card,
-      stackRotation: Math.floor(Math.random() * (20 - -40 + 1) + -40),
+      stackRotation: Math.floor(Math.random() * (-110 - -60 + 1) + -60),
+      translateY: Math.floor(Math.random() * (20 - -20 + 1) + -20),
     });
     // Change the 'currentCard' to the 'card' played
     this.gameRoom.currentCard = card;

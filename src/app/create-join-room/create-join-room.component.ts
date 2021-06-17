@@ -7,7 +7,7 @@ import {
   UnoColors,
 } from './../Constants/constants';
 import { GameService } from './../services/game.service';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { take } from 'rxjs/operators';
 
@@ -16,7 +16,7 @@ import { take } from 'rxjs/operators';
   templateUrl: './create-join-room.component.html',
   styleUrls: ['./create-join-room.component.css'],
 })
-export class CreateJoinRoomComponent implements OnInit {
+export class CreateJoinRoomComponent implements OnInit, OnDestroy {
   userName = '';
   roomId = '';
   createMode = true; // assume create mode default
@@ -67,6 +67,9 @@ export class CreateJoinRoomComponent implements OnInit {
         );
         this.gameService.roomId = randId;
         this.gameService.roomKey = gameObject?.key;
+        localStorage.setItem('roomId', gameObject?.roomId.toString());
+        localStorage.setItem('roomKey', gameObject?.key.toString());
+        localStorage.setItem('loggedInUserId', player.id.toString());
         this.router.navigate(['room', randId]);
       });
     });
@@ -93,6 +96,9 @@ export class CreateJoinRoomComponent implements OnInit {
         }
         this.gameService.roomId = gameObject?.roomId;
         this.gameService.roomKey = gameObject?.key;
+        localStorage.setItem('roomId', gameObject?.roomId.toString());
+        localStorage.setItem('roomKey', gameObject?.key.toString());
+
         const player: Player = {
           id: Math.floor(Math.random() * (99999999 - 1000) + 1000),
           name: this.userName,
@@ -105,6 +111,10 @@ export class CreateJoinRoomComponent implements OnInit {
           .object('/gameRooms/' + this.gameService.getRoom().roomKey)
           .update({ players: players });
         this.gameService.loggedInUser = player;
+        localStorage.setItem('roomId', gameObject?.roomId.toString());
+        localStorage.setItem('roomKey', gameObject?.key.toString());
+        localStorage.setItem('loggedInUserId', player.id.toString());
+
         this.router.navigate(['room', gameObject?.roomId]);
       });
   }
@@ -112,5 +122,10 @@ export class CreateJoinRoomComponent implements OnInit {
   toggleMode(): void {
     this.createMode = !this.createMode;
     this.showError = false;
+  }
+  ngOnDestroy(): void {
+    //Called once, before the instance is destroyed.
+    //Add 'implements OnDestroy' to the class.
+    console.log('destroyed');
   }
 }

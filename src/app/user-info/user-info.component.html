@@ -1,0 +1,15 @@
+<div class="flex">
+  <div
+    class="outer-square"
+    [ngClass]="{ glow: player.id === currentPlayer.id }"
+  >
+    <div class="square">
+      <img
+        src="https://i.pinimg.com/originals/a7/0e/16/a70e1675c7bc001f1578aa76bb0a7819.png"
+        alt=""
+        class="avatar"
+      />
+    </div>
+  </div>
+  <h5>{{ player?.name }}</h5>
+</div>

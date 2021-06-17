@@ -13,13 +13,15 @@ import { GameRoomComponent } from './game-room/game-room.component';
 import { CreateJoinRoomComponent } from './create-join-room/create-join-room.component';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-
+import { UserInfoComponent } from './user-info/user-info.component';
+import { ClipboardModule } from '@angular/cdk/clipboard';
 @NgModule({
   declarations: [
     AppComponent,
     UnoCardComponent,
     GameRoomComponent,
     CreateJoinRoomComponent,
+    UserInfoComponent,
   ],
   imports: [
     BrowserModule,
@@ -29,6 +31,7 @@ import { HttpClientModule } from '@angular/common/http';
     AngularFireDatabaseModule,
     FormsModule,
     HttpClientModule,
+    ClipboardModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

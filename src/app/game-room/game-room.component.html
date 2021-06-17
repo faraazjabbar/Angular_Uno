@@ -30,87 +30,177 @@
   </div>
 </ng-template>
 
-Welcome to UNO:
 <!-- <div class="header">
   Direction: {{ direction | json }}<br />
   Currently Player: {{ currentPlayer?.name }}<br />
   loggedInUser: {{ loggedInUser?.name }}
 </div> -->
-<h2>Joined Players</h2>
-<div *ngIf="gameRoom?.players && gameRoom.players.length > 1">
-  <span *ngFor="let player of gameRoom?.players"
-    >{{ player.name }} {{ player.deck && player.deck.length }} |
-  </span>
-  <button
-    *ngIf="!gameRoom.gameStarted && gameRoom.creator.id === loggedInUser.id"
-    (click)="initiateGame()"
+<!-- <h2>Joined Players</h2> -->
+<!-- [ngClass]="'p' + i" -->
+<div *ngIf="gameRoom">
+  <div *ngIf="!gameRoom?.gameStarted">
+    <div class="container">
+      <div class="card">
+        <div class="card-body">
+          <h5>
+            This is the link for your room share this with your friends so they
+            can join your room
+          </h5>
+          <h5 (click)="clipboard.copy(gameRoom.roomId)">
+            room/ {{ gameRoom.roomId }}
+          </h5>
+          <h6>Players in the room</h6>
+          <p *ngFor="let player of gameRoom?.players">{{ player.name }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    *ngIf="
+      gameRoom?.gameStarted && gameRoom?.players && gameRoom.players.length > 1
+    "
   >
-    Start
-  </button>
-</div>
-<hr />
-<div class="table" *ngIf="gameRoom?.gameStarted">
+    <app-user-info
+      *ngFor="let player of playersDisplay; let i = index"
+      [class]="positions[i]"
+      [player]="player"
+      [currentPlayer]="gameRoom.currentPlayer"
+    ></app-user-info>
+  </div>
+  <!-- <app-user-info></app-user-info>
+<app-user-info class="p1"></app-user-info>
+<app-user-info class="p2"></app-user-info>
+<app-user-info class="p3"></app-user-info> -->
+
+  <div *ngIf="gameRoom?.players && gameRoom.players.length > 1">
+    <button
+      *ngIf="!gameRoom.gameStarted && gameRoom.creator.id === loggedInUser.id"
+      (click)="initiateGame()"
+    >
+      Start
+    </button>
+  </div>
+  <div class="table" *ngIf="gameRoom?.gameStarted">
+    <svg
+      width="160"
+      height="190"
+      viewBox="0 0 227 256"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      (click)="onDrawOne(true)"
+      class="uno-deck"
+    >
+      <rect
+        x="0.280759"
+        y="26.6844"
+        width="150.055"
+        height="230.743"
+        rx="14.75"
+        transform="rotate(-7.57088 0.280759 26.6844)"
+        fill="black"
+        stroke="white"
+        stroke-width="0.5"
+      />
+      <rect
+        x="2.91446"
+        y="26.3344"
+        width="150.055"
+        height="230.743"
+        rx="14.75"
+        transform="rotate(-7.57088 2.91446 26.3344)"
+        fill="black"
+        stroke="white"
+        stroke-width="0.5"
+      />
+      <rect
+        x="5.54815"
+        y="25.9843"
+        width="150.055"
+        height="230.743"
+        rx="14.75"
+        transform="rotate(-7.57088 5.54815 25.9843)"
+        fill="black"
+        stroke="white"
+        stroke-width="0.5"
+      />
+      <rect
+        x="9.05972"
+        y="25.5176"
+        width="150.055"
+        height="230.743"
+        rx="14.75"
+        transform="rotate(-7.57088 9.05972 25.5176)"
+        fill="black"
+        stroke="white"
+        stroke-width="0.5"
+      />
+      <rect
+        x="12.5713"
+        y="25.0509"
+        width="150.055"
+        height="230.743"
+        rx="14.75"
+        transform="rotate(-7.57088 12.5713 25.0509)"
+        fill="black"
+        stroke="white"
+        stroke-width="0.5"
+      />
+      <path
+        d="M146.113 104.168C148.289 112.29 145.455 121.048 138.881 128.676C132.312 136.3 122.072 142.704 109.704 146.018C97.3359 149.332 85.2664 148.906 75.7652 145.588C66.2581 142.268 59.4243 136.101 57.2481 127.98C55.072 119.858 57.9068 111.101 64.4803 103.472C71.0496 95.8482 81.2891 89.4445 93.6573 86.1304C106.026 82.8164 118.095 83.2424 127.596 86.5602C137.103 89.88 143.937 96.047 146.113 104.168Z"
+        stroke="#F5371E"
+        stroke-width="2"
+      />
+      <path
+        d="M87.8218 108.34L89.4048 125.386C89.7509 128.217 89.1967 130.677 87.7423 132.765C86.2879 134.853 84.1623 136.248 81.3656 136.948C79.6133 137.382 77.9949 137.409 76.5104 137.03C75.0341 136.637 73.813 135.86 72.8469 134.7C71.8777 133.528 71.2634 132.073 71.0039 130.335L69.3994 113.276L74.3743 111.943L75.9833 129.019C76.074 129.674 76.2275 130.269 76.4441 130.806C77.1618 132.579 78.5089 133.237 80.4854 132.78C81.9011 132.45 82.9469 131.757 83.6228 130.702C84.2986 129.648 84.5635 128.327 84.4174 126.74L82.8299 109.677L87.8218 108.34ZM113.819 127.87L108.997 129.162L97.7029 114.518L99.251 131.774L94.2761 133.107L91.9477 107.234L96.7528 105.947L108.073 120.62L106.516 103.331L111.474 102.002L113.819 127.87ZM128.308 124.352C126.658 124.758 125.106 124.761 123.652 124.362C122.207 123.949 120.93 123.144 119.821 121.949C118.721 120.74 117.871 119.245 117.273 117.464C116.651 115.641 116.318 113.607 116.275 111.362C116.231 109.117 116.573 107.042 117.3 105.136C118.027 103.231 119.059 101.674 120.398 100.466C121.748 99.2554 123.333 98.4243 125.153 97.973C126.826 97.5611 128.387 97.5675 129.835 97.9923C131.28 98.4057 132.549 99.2244 133.641 100.448C134.731 101.661 135.566 103.148 136.147 104.909C136.794 106.871 137.128 108.977 137.149 111.228C137.169 113.479 136.814 115.528 136.084 117.373C135.353 119.219 134.321 120.733 132.988 121.915C131.666 123.094 130.106 123.907 128.308 124.352ZM131.77 109.084L131.473 107.435C131.047 105.39 130.366 103.934 129.43 103.069C128.506 102.2 127.375 101.921 126.039 102.231C123.949 102.718 122.548 104.076 121.835 106.305C121.133 108.531 121.161 111.375 121.919 114.836C122.342 116.87 123.022 118.343 123.959 119.257C124.892 120.16 126.044 120.452 127.415 120.133C129.213 119.736 130.499 118.651 131.274 116.879C132.046 115.095 132.253 112.813 131.897 110.033L131.77 109.084Z"
+        fill="#F8C903"
+      />
+    </svg>
+
+    <div class="table-stack">
+      <app-uno-card
+        *ngFor="let card of gameRoom.tableCards; let i = index"
+        [card]="card"
+        [ngStyle]="{
+          transform:
+            'rotate(' +
+            card.stackRotation +
+            'deg)   translateY(' +
+            card.translateY +
+            'px) translateX(' +
+            card.translateY / 2 +
+            'px)'
+        }"
+      ></app-uno-card>
+    </div>
+  </div>
+  <!-- <svg
+  width="1030"
+  height="100"
+  viewBox="0 0 1030 100"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  class="table-grey"
+>
+  <path d="M195.482 0L0 100H1030L834.518 0H195.482Z" fill="#C4C4C4" />
+</svg> -->
   <svg
-    width="179"
-    height="217"
-    viewBox="0 0 179 217"
+    width="1030"
+    height="100"
+    viewBox="0 0 1030 100"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    (click)="onDrawOne(true)"
-    class="uno-deck"
+    class="table-grey"
   >
-    <path d="M2 100V65L28 93L2 100Z" fill="#434343" />
     <path
-      d="M177.541 119.684L172.168 153.367L128.299 118.737L177.541 119.684Z"
-      fill="#434343"
+      d="M195.482 0L0 100H1030L834.518 0H195.482Z"
+      fill="#FFF6A2"
+      fill-opacity="0.33"
     />
-    <path
-      d="M91.5063 73.1793C92.1983 72.9876 92.94 73.1815 93.4496 73.6875L171.842 151.526C172.874 152.55 172.503 154.299 171.143 154.815L87.4799 186.588C86.7327 186.872 85.8882 186.683 85.3325 186.109L2.81959 100.823C1.76449 99.732 2.26059 97.9097 3.7229 97.5045L91.5063 73.1793Z"
-      fill="#434343"
-    />
-    <path
-      d="M94.4807 38.2945C95.173 38.1004 95.9162 38.2928 96.4273 38.7985L177.376 118.888C178.41 119.911 178.042 121.659 176.684 122.178L89.6827 155.444C88.9357 155.729 88.0903 155.542 87.5333 154.969L2.34073 67.1944C1.28476 66.1065 1.77611 64.285 3.23599 63.8757L94.4807 38.2945Z"
-      fill="url(#paint0_linear)"
-    />
-    <path
-      d="M110.997 72.8072C114.277 76.0873 115.194 81.3338 113.755 87.3705C112.32 93.3886 108.568 100.022 102.795 105.795C97.0218 111.568 90.3886 115.32 84.3705 116.755C78.3338 118.194 73.0873 117.277 69.8072 113.997C66.5271 110.717 65.6096 105.47 67.0488 99.4334C68.4836 93.4153 72.2359 86.7821 78.009 81.009C83.7821 75.2359 90.4153 71.4836 96.4334 70.0488C102.47 68.6096 107.717 69.527 110.997 72.8072Z"
-      stroke="#AD374F"
-      stroke-width="2"
-    />
-    <path
-      d="M74.7814 95.3807C75.0755 95.0866 75.4093 94.9451 75.7826 94.9564C76.156 94.9678 76.4954 95.1261 76.8009 95.4316L82.9442 101.575C83.8832 102.514 84.5168 103.544 84.8449 104.664C85.173 105.784 85.1843 106.904 84.8788 108.024C84.5734 109.144 83.9624 110.162 83.046 111.078C82.1296 111.995 81.1057 112.611 79.9744 112.928C78.8543 113.234 77.7342 113.222 76.6142 112.894C75.4941 112.566 74.4646 111.933 73.5255 110.994L67.3822 104.85C67.088 104.556 66.9466 104.211 66.9579 103.815C66.9579 103.408 67.1163 103.046 67.4331 102.729C67.7046 102.457 68.044 102.322 68.4513 102.322C68.8473 102.31 69.1924 102.452 69.4865 102.746L75.6299 108.889C76.1729 109.432 76.7782 109.8 77.4457 109.992C78.1019 110.173 78.7412 110.179 79.3634 110.009C79.997 109.828 80.5457 109.506 81.0096 109.042C81.496 108.556 81.8355 107.99 82.0278 107.345C82.2314 106.689 82.2484 106.027 82.0787 105.359C81.909 104.669 81.5526 104.053 81.0096 103.51L74.8662 97.3663C74.5607 97.0608 74.3967 96.727 74.3741 96.365C74.3514 96.003 74.4872 95.6749 74.7814 95.3807ZM87.3409 82.8551C87.6124 82.5836 87.9236 82.4535 88.2743 82.4648C88.625 82.4761 88.9361 82.6175 89.2077 82.889L99.1015 92.7829C99.3957 93.077 99.5427 93.4278 99.5427 93.8351C99.5427 94.2197 99.3957 94.5591 99.1015 94.8533C98.9431 95.0117 98.7621 95.1475 98.5584 95.2606C98.3548 95.3511 98.1738 95.385 98.0154 95.3624L83.8789 93.6823L91.1253 100.929C91.3969 101.2 91.5326 101.517 91.5326 101.879C91.5439 102.23 91.4082 102.547 91.1253 102.829C90.8538 103.101 90.5427 103.231 90.192 103.22C89.8412 103.208 89.5301 103.067 89.2586 102.796L79.3647 92.9017C79.0706 92.6075 78.9235 92.2681 78.9235 91.8834C78.9235 91.4762 79.0706 91.1254 79.3647 90.8313C79.5344 90.6616 79.7324 90.5315 79.9587 90.4409C80.1963 90.3391 80.4113 90.3052 80.6036 90.3391L94.6552 92.0362L87.3579 84.7388C87.0863 84.4673 86.9449 84.1562 86.9336 83.8055C86.9336 83.4434 87.0694 83.1266 87.3409 82.8551ZM107.678 74.3978C108.798 75.5179 109.578 76.7963 110.02 78.2331C110.449 79.6587 110.495 81.0842 110.155 82.5097C109.827 83.9239 109.114 85.1798 108.017 86.2772C106.92 87.3746 105.658 88.093 104.233 88.4325C102.818 88.7606 101.398 88.7096 99.973 88.2797C98.5474 87.8272 97.2746 87.0409 96.1546 85.9208C95.0345 84.8008 94.2539 83.5336 93.8127 82.1194C93.3714 80.6826 93.3148 79.257 93.6429 77.8428C93.9824 76.4173 94.7008 75.1558 95.7982 74.0584C96.8956 72.961 98.1515 72.2482 99.5657 71.9201C100.991 71.5807 102.422 71.6316 103.859 72.0728C105.285 72.5028 106.558 73.2777 107.678 74.3978ZM105.471 76.604C104.713 75.846 103.876 75.3142 102.96 75.0087C102.032 74.692 101.116 74.6241 100.211 74.8051C99.3055 74.9861 98.5135 75.416 97.8347 76.0949C97.1445 76.785 96.709 77.5826 96.5279 78.4877C96.3469 79.3702 96.4148 80.2753 96.7316 81.203C97.0597 82.1194 97.6027 82.9566 98.3608 83.7146C99.1188 84.4727 99.956 85.0157 100.872 85.3438C101.8 85.6606 102.711 85.7341 103.605 85.5644C104.498 85.3721 105.29 84.9309 105.981 84.2407C106.659 83.5619 107.089 82.7699 107.27 81.8648C107.451 80.9598 107.389 80.049 107.084 79.1326C106.767 78.2049 106.229 77.362 105.471 76.604Z"
-      fill="#F7E083"
-    />
-    <defs>
-      <linearGradient
-        id="paint0_linear"
-        x1="136.697"
-        y1="133.016"
-        x2="60.7542"
-        y2="49.0328"
-        gradientUnits="userSpaceOnUse"
-      >
-        <stop stop-color="#110C08" />
-        <stop offset="1" stop-color="#7D797A" />
-      </linearGradient>
-    </defs>
   </svg>
-  <div class="table-stack">
-    <app-uno-card
-      *ngFor="let card of gameRoom.tableCards; let i = index"
-      [card]="card"
-      [ngStyle]="{
-        transform: 'rotate(' + card.stackRotation + 'deg)'
-      }"
-    ></app-uno-card>
-  </div>
-</div>
-<hr />
 
-<div class="deck" *ngIf="gameRoom?.gameStarted">
-  <div class="half">
-    {{ loggedInUser.name }}'s Cards(1st):
-    <span *ngIf="loggedInUser.id === gameRoom.currentPlayer.id">Your Turn</span>
+  <div class="deck" *ngIf="gameRoom?.gameStarted">
+    <!--
+    <span *ngIf="loggedInUser.id === gameRoom.currentPlayer.id">Your Turn</span> -->
     <div class="cards">
       <app-uno-card
         *ngFor="let card of loggedInUser.deck; let i = index"
@@ -120,7 +210,7 @@ Welcome to UNO:
     </div>
     <div>
       <button
-        class="btn btn-dark"
+        class="btn pass"
         (click)="moveToNextPlayer(true)"
         *ngIf="showPass && loggedInUser.id === gameRoom.currentPlayer.id"
       >
@@ -152,12 +242,18 @@ Welcome to UNO:
   <!-- 1. First card should not be (special card) -->
   <!-- 2. Disable other player's card and show notification on playing non matching card -->
   <!-- 3. Move enum/interfaces to shared folder -->
-</div>
-<div
-  *ngIf="
-    loggedInUser?.deck?.length === 2 &&
-    loggedInUser?.id === gameRoom?.currentPlayer?.id
-  "
->
-  <button (click)="onUnoClicked()">UNO</button>
+  <!-- *ngIf="
+  loggedInUser?.deck?.length === 2 &&
+  loggedInUser?.id === gameRoom?.currentPlayer?.id &&
+  !unoClicked
+" -->
+  <div
+    *ngIf="
+      loggedInUser?.deck?.length === 2 &&
+      loggedInUser?.id === gameRoom?.currentPlayer?.id &&
+      !unoClicked
+    "
+  >
+    <button class="uno-button" (click)="onUnoClicked()">UNO</button>
+  </div>
 </div>

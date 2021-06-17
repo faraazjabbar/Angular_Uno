@@ -41,6 +41,7 @@ export interface UnoCard {
   color: UnoColors;
   action: UnoActions;
   stackRotation?: number;
+  translateY?: number;
 }
 export const Colors: UnoColors[] = [
   UnoColors.RED,
